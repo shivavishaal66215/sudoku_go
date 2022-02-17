@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/base64"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,21 +14,21 @@ func HandleRegister(c *gin.Context){
 	c.Request.ParseForm()
 
 	//fetching data from POST body
-	username := strings.Join(c.Request.Form["username"],"")
-	password := strings.Join(c.Request.Form["password"],"")
+	username := strings.Join(c.Request.Form[USERNAME],"")
+	password := strings.Join(c.Request.Form[PASSWORD],"")
 
 	if username == "" || password == ""{
 		//this means user already exists
-		c.IndentedJSON(http.StatusForbidden,"credentials missing")
+		c.IndentedJSON(http.StatusForbidden,CREDENTIALS_MISSING)
 		return
 	}
 	
 	//checking if user already exists
-	result := FindOne(bson.M{"username": username},"login")
+	result := FindOne(bson.M{USERNAME: username},LOGIN)
 
 	if result != nil{
 		//this means user already exists
-		c.IndentedJSON(http.StatusForbidden,"user exists")
+		c.IndentedJSON(http.StatusForbidden,USER_EXISTS)
 		return
 	}
 
@@ -40,11 +39,11 @@ func HandleRegister(c *gin.Context){
 
 	//making new user
 	data := bson.D{
-		{Key: "username", Value: username},
-		{Key: "password", Value: sha},
+		{Key: USERNAME, Value: username},
+		{Key: PASSWORD, Value: sha},
 	}
 
-	err := InsertOne(data,"login")
+	err := InsertOne(data,LOGIN)
 	if err != nil{
 		c.IndentedJSON(http.StatusInternalServerError,"")
 		return
@@ -56,8 +55,12 @@ func HandleLogin(c *gin.Context){
 	c.Request.ParseForm()
 
 	//fetching data from POST body
-	username := strings.Join(c.Request.Form["username"],"")
-	fmt.Println(username)
+	username := strings.Join(c.Request.Form[USERNAME],"")
+	password := strings.Join(c.Request.Form[PASSWORD],"")
+
+	if username == "" || password == ""{
+		c.IndentedJSON(http.StatusForbidden,CREDENTIALS_MISSING)
+	}
 
 	c.IndentedJSON(http.StatusOK, "")
 }
