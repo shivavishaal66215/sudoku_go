@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -15,7 +16,13 @@ func HandleRegister(c *gin.Context){
 
 	//fetching data from POST body
 	username := strings.Join(c.Request.Form["username"],"")
-	password := c.Request.Form["password"]
+	password := strings.Join(c.Request.Form["password"],"")
+
+	if username == "" || password == ""{
+		//this means user already exists
+		c.IndentedJSON(http.StatusForbidden,"credentials missing")
+		return
+	}
 	
 	//checking if user already exists
 	result := FindOne(bson.M{"username": username},"login")
@@ -28,7 +35,7 @@ func HandleRegister(c *gin.Context){
 
 	//generating hash for password
 	hasher := sha1.New()
-    hasher.Write([]byte(strings.Join(password,"")))
+    hasher.Write([]byte(password))
     sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 	//making new user
@@ -43,4 +50,14 @@ func HandleRegister(c *gin.Context){
 		return
 	}
 	c.IndentedJSON(http.StatusOK,"")
+}
+
+func HandleLogin(c *gin.Context){
+	c.Request.ParseForm()
+
+	//fetching data from POST body
+	username := strings.Join(c.Request.Form["username"],"")
+	fmt.Println(username)
+
+	c.IndentedJSON(http.StatusOK, "")
 }

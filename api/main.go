@@ -15,6 +15,7 @@ func main(){
 	})
 	r.POST("/gen-sudoku", HandleGenSudoku)
 	r.POST("/register", HandleRegister)
+	r.POST("/login", HandleLogin)
 
 	r.Run("localhost:8000")
 }
