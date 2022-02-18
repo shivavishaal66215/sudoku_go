@@ -97,7 +97,7 @@ func HandleLogin(c *gin.Context){
 		return
 	}
 	
-	c.SetCookie("AuthToken", auth_token, 0, "/", "localhost",true,false)
+	c.SetCookie("AuthToken", auth_token, 0, "/", "localhost",true,true)
 
 	c.IndentedJSON(http.StatusOK, "")
 }
