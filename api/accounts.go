@@ -14,21 +14,21 @@ func HandleRegister(c *gin.Context){
 	c.Request.ParseForm()
 
 	//fetching data from POST body
-	username := strings.Join(c.Request.Form[USERNAME],"")
-	password := strings.Join(c.Request.Form[PASSWORD],"")
+	username := strings.Join(c.Request.Form["username"],"")
+	password := strings.Join(c.Request.Form["username"],"")
 
 	if username == "" || password == ""{
 		//this means user already exists
-		c.IndentedJSON(http.StatusForbidden,CREDENTIALS_MISSING)
+		c.IndentedJSON(http.StatusForbidden,"credentials missing")
 		return
 	}
 	
 	//checking if user already exists
-	result := FindOne(bson.M{USERNAME: username},LOGIN)
+	result := FindOne(bson.M{"username": username},"login")
 
 	if result != nil{
 		//this means user already exists
-		c.IndentedJSON(http.StatusForbidden,USER_EXISTS)
+		c.IndentedJSON(http.StatusForbidden,"user exists")
 		return
 	}
 
@@ -39,11 +39,11 @@ func HandleRegister(c *gin.Context){
 
 	//making new user
 	data := bson.D{
-		{Key: USERNAME, Value: username},
-		{Key: PASSWORD, Value: sha},
+		{Key: "username", Value: username},
+		{Key: "password", Value: sha},
 	}
 
-	err := InsertOne(data,LOGIN)
+	err := InsertOne(data,"login")
 	if err != nil{
 		c.IndentedJSON(http.StatusInternalServerError,"")
 		return
@@ -55,11 +55,19 @@ func HandleLogin(c *gin.Context){
 	c.Request.ParseForm()
 
 	//fetching data from POST body
-	username := strings.Join(c.Request.Form[USERNAME],"")
-	password := strings.Join(c.Request.Form[PASSWORD],"")
+	username := strings.Join(c.Request.Form["username"],"")
+	password := strings.Join(c.Request.Form["password"],"")
 
 	if username == "" || password == ""{
-		c.IndentedJSON(http.StatusForbidden,CREDENTIALS_MISSING)
+		c.IndentedJSON(http.StatusForbidden,"credentials missing")
+		return
+	}
+
+	result := FindOne(bson.M{"username" : username}, "login")
+	if result == nil{
+		//user doesn't exist
+		c.IndentedJSON(http.StatusForbidden,"user doesn't exist")
+		return
 	}
 
 	c.IndentedJSON(http.StatusOK, "")
