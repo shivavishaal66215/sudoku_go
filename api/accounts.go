@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
@@ -53,6 +54,8 @@ func HandleRegister(c *gin.Context){
 
 func HandleLogin(c *gin.Context){
 	c.Request.ParseForm()
+	//at this point, all necessary checks have passed
+	current_time := time.Now().String()
 
 	//fetching data from POST body
 	username := strings.Join(c.Request.Form["username"],"")
@@ -69,6 +72,32 @@ func HandleLogin(c *gin.Context){
 		c.IndentedJSON(http.StatusForbidden,"user doesn't exist")
 		return
 	}
+
+	stored_hash := result["password"]
+
+	//generating hash for current password
+	hasher := sha1.New()
+    hasher.Write([]byte(password))
+    current_hash := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
+	if stored_hash != current_hash{
+		//password entered is invalid
+		c.IndentedJSON(http.StatusForbidden,"incorrect username or password")
+		return
+	}
+
+	//generate session token
+	hasher = sha1.New()
+	hasher.Write([]byte(current_time))
+	auth_token := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
+	err := UpdateSession(auth_token, username)
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError,"")
+		return
+	}
+	
+	c.SetCookie("AuthToken", auth_token, 0, "/", "localhost",true,false)
 
 	c.IndentedJSON(http.StatusOK, "")
 }
