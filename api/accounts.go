@@ -150,7 +150,13 @@ func HandleLogout(c *gin.Context){
 		return
 	}
 
-	err = UpdateSession("",username)
+	//replace with fake auth_token
+	current_time := time.Now().String()
+	hasher := sha1.New()
+	hasher.Write([]byte(current_time))
+	auth_token = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
+	err = UpdateSession(auth_token,username)
 	if err != nil{
 		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
 		return
