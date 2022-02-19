@@ -98,6 +98,63 @@ func HandleLogin(c *gin.Context){
 	}
 	
 	c.SetCookie("AuthToken", auth_token, 0, "/", "localhost",true,true)
+	c.SetCookie("Username", username, 0, "/", "localhost",true,true)
 
 	c.IndentedJSON(http.StatusOK, "")
+}
+
+func CheckLogin(c *gin.Context) bool{
+	auth_token,err := c.Cookie("AuthToken")
+	if err != nil{
+		return false
+	}
+
+	username,err := c.Cookie("Username")
+	if err != nil{
+		return false
+	}
+
+	result := FindOne(bson.M{"username" : username},"login")
+	if result == nil{
+		//user is not logged in
+		return false
+	}
+
+	return result["auth_token"] == auth_token
+}
+
+func HandleCheckLogin(c *gin.Context){
+	login_status := CheckLogin(c)
+	if login_status{
+		c.IndentedJSON(http.StatusOK,"logged in")
+	}else{
+		c.IndentedJSON(http.StatusForbidden,"not logged in")
+	}
+}
+
+func HandleLogout(c *gin.Context){
+	auth_token, err := c.Cookie("AuthToken")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
+		return
+	}
+	username, err := c.Cookie("Username")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
+		return
+	}
+
+	result := FindOne(bson.M{"username": username}, "login")
+	if result["auth_token"] != auth_token{
+		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
+		return
+	}
+
+	err = UpdateSession("",username)
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK,"logged out")
 }

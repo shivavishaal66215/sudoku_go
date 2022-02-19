@@ -171,6 +171,12 @@ func generateSudoku(difficulty int) (map[string][9][9]int){
 }
 
 func HandleGenSudoku(c *gin.Context){
+	login_status := CheckLogin(c)
+	if !login_status{
+		c.IndentedJSON(http.StatusForbidden,"not logged in")
+		return
+	}
+	
 	c.Request.ParseForm()
 	difficulty,err := strconv.Atoi(strings.Join(c.Request.Form["difficulty"],""))
 	if err != nil{
