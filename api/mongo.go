@@ -65,7 +65,7 @@ func FindOne(query bson.M, collection string) (bson.M){
 	return result
 }
 
-func UpdateSession(auth_token string, username string) error{
+func UpdateOne(query bson.M, collection string, new_data bson.D) error{
 	client,ctx,cancel,err := Connect()
 	defer cancel()
 
@@ -73,13 +73,22 @@ func UpdateSession(auth_token string, username string) error{
 		return err
 	}
 
-	_,err = client.Database("sudoku_go").Collection("login").UpdateOne(
+	_,err = client.Database("sudoku_go").Collection(collection).UpdateOne(
 		ctx,
-		bson.M{"username":username},
-		bson.D{
-			{Key: "$set", Value: bson.D{{Key:"auth_token", Value:auth_token}}},
-	})
+		query,
+		new_data,
+	)
 
+	if err != nil{
+		return err
+	}
+
+	return nil
+}
+
+func UpdateSession(auth_token string, username string) error{
+	err := UpdateOne(bson.M{"username": username},"login",bson.D{{Key: "$set", Value: bson.D{{Key:"auth_token", Value:auth_token}}},})
+	
 	if err != nil{
 		return err
 	}
