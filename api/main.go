@@ -18,6 +18,7 @@ func main(){
 	r.POST("/login", HandleLogin)
 	r.POST("/check-login",HandleCheckLogin)
 	r.POST("/logout",HandleLogout)
+	r.POST("/check-unsolved",HandleCheckUnsolved)
 
 	r.Run("localhost:8000")
 }

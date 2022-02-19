@@ -29,8 +29,8 @@ func Connect()(*mongo.Client,context.Context,context.CancelFunc, error){
 
 func InsertOne(data bson.D, collection string) error{
 	client,ctx,cancel,err := Connect()
-	defer cancel()
-
+	defer Close(client,ctx,cancel)
+	
 	if err != nil{
 		return err
 	}
@@ -40,14 +40,12 @@ func InsertOne(data bson.D, collection string) error{
 		return err
 	}
 
-	Close(client,ctx,cancel)
-
 	return nil
 }
 
 func FindOne(query bson.M, collection string) (bson.M){
 	client,ctx,cancel,err := Connect()
-	defer cancel()
+	defer Close(client,ctx,cancel)
 
 	if err != nil{
 		return nil
@@ -60,14 +58,34 @@ func FindOne(query bson.M, collection string) (bson.M){
 		return nil
 	}
 
-	Close(client,ctx,cancel)
+	return result
+}
+
+func FindMany(query bson.M, collection string)([]bson.M){
+	client, ctx, cancel,err := Connect()
+	defer Close(client,ctx,cancel)
+
+	if err != nil{
+		return nil
+	}
+
+	cursor, err := client.Database("sudoku_go").Collection(collection).Find(ctx, bson.M{})
+	if err != nil {
+		return nil
+	}
+
+	var result []bson.M
+	if err = cursor.All(ctx, &result); err != nil {
+		return nil
+	}
 
 	return result
+	
 }
 
 func UpdateOne(query bson.M, collection string, new_data bson.D) error{
 	client,ctx,cancel,err := Connect()
-	defer cancel()
+	defer Close(client,ctx,cancel)
 
 	if err != nil{
 		return err
