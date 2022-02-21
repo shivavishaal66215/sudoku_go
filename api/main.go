@@ -6,6 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const(
+	TIME_FORMAT = "2006-01-02T15:04:05.000Z"
+)
+
 func main(){
 	// gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()

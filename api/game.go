@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,36 +11,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func HandleCheckUnsolved(c *gin.Context){
-	login_status := CheckLogin(c)
-	if !login_status{
-		c.IndentedJSON(http.StatusForbidden,"not logged in")
-		return
-	}
-
-	username, err := c.Cookie("Username")
-	if err != nil{
-		c.IndentedJSON(http.StatusInternalServerError,"unable to parse cookie")
-	}
-
-	result := FindMany(bson.M{"username": username}, "solves")
-	if result == nil{
-		//user has not generated any sudokus
-		c.IndentedJSON(http.StatusNoContent, "no unsolved sudokus")
-		return
-	}
-
-
+func GetLatestGame(result []bson.M)(int,error){
 	latest_ts_index := 0
-	latest_ts := time.Now()
+	latest_ts,err := time.Parse(TIME_FORMAT,fmt.Sprint(result[0]["ts"]))
+	if err != nil{
+		return -1,err
+	}
 	for i:=0;i<len(result);i++{
 		current_ts_string := fmt.Sprint(result[i]["ts"])
-		current_ts, err := time.Parse(time.Now().String(),current_ts_string)
-
+		current_ts, err := time.Parse(TIME_FORMAT,current_ts_string)
 		if err != nil{
-			fmt.Println(err)
-			c.IndentedJSON(http.StatusInternalServerError,"could not fetch data")
-			return
+			return -1,err
 		}
 
 		if current_ts.After(latest_ts){
@@ -50,9 +30,39 @@ func HandleCheckUnsolved(c *gin.Context){
 		}
 	}
 
-	fmt.Println(latest_ts_index)
+	return latest_ts_index,nil
+}
 
-	c.IndentedJSON(http.StatusOK,"")
+func HandleCheckUnsolved(c *gin.Context){
+	login_status := CheckLogin(c)
+	if !login_status{
+		c.IndentedJSON(http.StatusForbidden,"not logged in")
+		return
+	}
+	username, err := c.Cookie("Username")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError,"unable to parse cookie")
+	}
+
+	result := FindMany(bson.M{"username": username}, "solves")
+	if result == nil{
+		//user has not generated any sudokus
+		c.IndentedJSON(http.StatusNotFound, "no generated sudokus")
+		return
+	}
+	
+	latest_ts_index, err := GetLatestGame(result)
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "trouble parsing game history")
+		return
+	}
+
+	if result[latest_ts_index]["completed"] == true{
+		c.IndentedJSON(http.StatusNotFound, "no unsolved sudokus")
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, result[latest_ts_index]["current"])
 }
 
 func HandleGenSudoku(c *gin.Context){
@@ -77,18 +87,14 @@ func HandleGenSudoku(c *gin.Context){
 		c.IndentedJSON(http.StatusBadRequest,"Difficulty must be 0,1 or 2")
 	}else{
 		result := GenerateSudoku(difficulty)
-		data,err := json.Marshal(result["complete"])
-		if err != nil{
-			c.IndentedJSON(http.StatusInternalServerError, "could not marshal array")
-			return
-		}
 
 		err = InsertOne(bson.D{
 			{Key: "username", Value: username},
-			{Key: "ts", Value: time.Now().String()},
-			{Key: "sudoku", Value: data},
+			{Key: "ts", Value: time.Now().Format(TIME_FORMAT)},
+			{Key: "sudoku", Value: result["complete"]},
 			{Key: "difficulty", Value: difficulty},
 			{Key: "completed", Value: false},
+			{Key: "current", Value: result["incomplete"]},
 		},"solves")
 
 		if err != nil{
