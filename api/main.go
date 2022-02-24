@@ -23,6 +23,7 @@ func main(){
 	r.POST("/check-login",HandleCheckLogin)
 	r.POST("/logout",HandleLogout)
 	r.POST("/check-unsolved",HandleCheckUnsolved)
+	r.POST("/save-sudoku",HandleSaveSudoku)
 
 	r.Run("localhost:8000")
 }

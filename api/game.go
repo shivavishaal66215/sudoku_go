@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -104,4 +105,44 @@ func HandleGenSudoku(c *gin.Context){
 
 		c.IndentedJSON(http.StatusAccepted, result["incomplete"])
 	}
+}
+
+func HandleSaveSudoku(c *gin.Context){
+	login_status := CheckLogin(c)
+	if !login_status{
+		c.IndentedJSON(http.StatusForbidden, "not logged in")
+		return
+	}
+
+	username,err := c.Cookie("Username")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not parse cookie")
+		return
+	}
+
+	c.Request.ParseForm()
+	result := FindMany(bson.M{"username": username},"solves")
+	
+	var passedSudoku [][]int8
+	err = json.Unmarshal([]byte(c.Request.Form["sudoku"][0]),&passedSudoku)
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not parse payload")
+		return
+	}
+
+	latest_index,err := GetLatestGame(result)
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "trouble fetching history")
+		return
+	}
+
+	latest := result[latest_index]
+	err = UpdateOne(bson.M{"username": username, "ts": latest["ts"]},"solves",bson.D{{Key: "$set", Value: bson.D{{Key: "current", Value: passedSudoku}}}})
+	if err != nil{
+		fmt.Println(err)
+		c.IndentedJSON(http.StatusInternalServerError, "could not save changes")
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, "Saved")
 }
