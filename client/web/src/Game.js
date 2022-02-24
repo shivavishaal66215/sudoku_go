@@ -141,8 +141,22 @@ export default class Game extends Component {
 		}
 	}
 
-	handleSave() {
+	async handleSave() {
+		//TODO
 		//save sudoku progress in db
+		try {
+			const res = await axios({
+				method: "post",
+				url: "/save-sudoku",
+				data: querystring.stringify({
+					sudoku: JSON.stringify(this.state.sudoku),
+				}),
+				withCredentials: true,
+			});
+			console.log(res);
+		} catch (e) {
+			alert("Could not save progress");
+		}
 	}
 
 	render() {
@@ -217,7 +231,7 @@ export default class Game extends Component {
 										);
 									})}
 								</div>
-								<button>Save</button>
+								<button onClick={this.handleSave}>Save</button>
 								<button>Submit</button>
 							</div>
 						)}
