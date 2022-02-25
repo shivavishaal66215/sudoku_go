@@ -69,7 +69,7 @@ func FindMany(query bson.M, collection string)([]bson.M){
 		return nil
 	}
 
-	cursor, err := client.Database("sudoku_go").Collection(collection).Find(ctx, bson.M{})
+	cursor, err := client.Database("sudoku_go").Collection(collection).Find(ctx, query)
 	if err != nil {
 		return nil
 	}
