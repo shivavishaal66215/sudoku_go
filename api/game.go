@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,14 +13,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func GetLatestGame(result []bson.M)(int,error){
+func GetLatestGame(result []Document)(int,error){
+	if len(result) == 0{
+		return -1, errors.New("size is 0")
+	}
 	latest_ts_index := 0
-	latest_ts,err := time.Parse(TIME_FORMAT,fmt.Sprint(result[0]["ts"]))
+	latest_ts,err := time.Parse(TIME_FORMAT,fmt.Sprint(result[0].SolvesData.Ts))
 	if err != nil{
 		return -1,err
 	}
 	for i:=0;i<len(result);i++{
-		current_ts_string := fmt.Sprint(result[i]["ts"])
+		current_ts_string := fmt.Sprint(result[i].SolvesData.Ts)
 		current_ts, err := time.Parse(TIME_FORMAT,current_ts_string)
 		if err != nil{
 			return -1,err
@@ -45,25 +49,24 @@ func HandleCheckUnsolved(c *gin.Context){
 		c.IndentedJSON(http.StatusInternalServerError,"unable to parse cookie")
 	}
 
-	result := FindMany(bson.M{"username": username}, "solves")
-	if result == nil{
-		//user has not generated any sudokus
+	result,err := FindManyMongo(bson.M{"username": username}, "solves")
+	if err != nil{
 		c.IndentedJSON(http.StatusNotFound, "no generated sudokus")
 		return
 	}
-	
+
 	latest_ts_index, err := GetLatestGame(result)
 	if err != nil{
-		c.IndentedJSON(http.StatusInternalServerError, "trouble parsing game history")
+		c.IndentedJSON(http.StatusNotFound, "trouble parsing game history")
 		return
 	}
 
-	if result[latest_ts_index]["completed"] == true{
+	if result[latest_ts_index].SolvesData.Completed{
 		c.IndentedJSON(http.StatusNotFound, "no unsolved sudokus")
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, result[latest_ts_index]["current"])
+	c.IndentedJSON(http.StatusOK, result[latest_ts_index].SolvesData.Current)
 }
 
 func HandleGenSudoku(c *gin.Context){
@@ -77,7 +80,7 @@ func HandleGenSudoku(c *gin.Context){
 	if err != nil{
 		c.IndentedJSON(http.StatusInternalServerError, "could not parse cookie")
 	}
-	
+
 	c.Request.ParseForm()
 	difficulty,err := strconv.Atoi(strings.Join(c.Request.Form["difficulty"],""))
 	if err != nil{
@@ -89,14 +92,17 @@ func HandleGenSudoku(c *gin.Context){
 	}else{
 		result := GenerateSudoku(difficulty)
 
-		err = InsertOne(bson.D{
-			{Key: "username", Value: username},
-			{Key: "ts", Value: time.Now().Format(TIME_FORMAT)},
-			{Key: "sudoku", Value: result["complete"]},
-			{Key: "difficulty", Value: difficulty},
-			{Key: "completed", Value: false},
-			{Key: "current", Value: result["incomplete"]},
-		},"solves")
+		err = InsertMongo(Document{
+			Type: "solves",
+			SolvesData: Solves{
+				Username: username,
+				Ts: time.Now().Format(TIME_FORMAT),
+				Current: result["incomplete"],
+				Sudoku: result["complete"],
+				Difficulty: difficulty,
+				Completed: false,
+			},
+		})
 
 		if err != nil{
 			c.IndentedJSON(http.StatusInternalServerError,"trouble generating sudoku")
@@ -121,9 +127,13 @@ func HandleSaveSudoku(c *gin.Context){
 	}
 
 	c.Request.ParseForm()
-	result := FindMany(bson.M{"username": username},"solves")
-	
-	var passedSudoku [][]int8
+	result,err := FindManyMongo(bson.M{"username": username},"solves")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not fetch history")
+		return
+	}
+
+	var passedSudoku [9][9]int
 	err = json.Unmarshal([]byte(c.Request.Form["sudoku"][0]),&passedSudoku)
 	if err != nil{
 		c.IndentedJSON(http.StatusInternalServerError, "could not parse payload")
@@ -137,7 +147,17 @@ func HandleSaveSudoku(c *gin.Context){
 	}
 
 	latest := result[latest_index]
-	err = UpdateOne(bson.M{"username": username, "ts": latest["ts"]},"solves",bson.D{{Key: "$set", Value: bson.D{{Key: "current", Value: passedSudoku}}}})
+	err = UpdateOneMongo(bson.M{"username": username, "ts": latest.SolvesData.Ts}, "solves", Document{
+		Type: "solves",
+		SolvesData: Solves{
+			Current: passedSudoku,
+			Sudoku: latest.SolvesData.Sudoku,
+			Ts: latest.SolvesData.Ts,
+			Username: latest.SolvesData.Username,
+			Completed: latest.SolvesData.Completed,
+			Difficulty: latest.SolvesData.Difficulty,
+		},
+	})
 	if err != nil{
 		fmt.Println(err)
 		c.IndentedJSON(http.StatusInternalServerError, "could not save changes")

@@ -19,17 +19,16 @@ func HandleRegister(c *gin.Context){
 	password := strings.Join(c.Request.Form["username"],"")
 
 	if username == "" || password == ""{
-		//this means user already exists
+		//this means credentials are missing
 		c.IndentedJSON(http.StatusForbidden,"credentials missing")
 		return
 	}
-	
-	//checking if user already exists
-	result := FindOne(bson.M{"username": username},"login")
 
-	if result != nil{
-		//this means user already exists
-		c.IndentedJSON(http.StatusForbidden,"user exists")
+	//checking if user already exists
+	_,err := FindOneMongo(bson.M{"username": username},"logins")
+	if err == nil{
+		//user exists or connection to mongo failed. Either way, return user already exists
+		c.IndentedJSON(http.StatusForbidden, "user exists")
 		return
 	}
 
@@ -38,23 +37,24 @@ func HandleRegister(c *gin.Context){
     hasher.Write([]byte(password))
     sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
-	//making new user
-	data := bson.D{
-		{Key: "username", Value: username},
-		{Key: "password", Value: sha},
+	doc := Document{
+		Type: "logins",
+		LoginData: Logins{
+			Username: username,
+			Password: sha,
+		},
 	}
 
-	err := InsertOne(data,"login")
+	err = InsertMongo(doc)
 	if err != nil{
-		c.IndentedJSON(http.StatusInternalServerError,"")
+		c.IndentedJSON(http.StatusInternalServerError,"could not create user")
 		return
 	}
-	c.IndentedJSON(http.StatusOK,"")
+	c.IndentedJSON(http.StatusOK,"user created")
 }
 
 func HandleLogin(c *gin.Context){
 	c.Request.ParseForm()
-	//at this point, all necessary checks have passed
 	current_time := time.Now().String()
 
 	//fetching data from POST body
@@ -66,14 +66,14 @@ func HandleLogin(c *gin.Context){
 		return
 	}
 
-	result := FindOne(bson.M{"username" : username}, "login")
-	if result == nil{
-		//user doesn't exist
-		c.IndentedJSON(http.StatusForbidden,"user doesn't exist")
+	mongoResult,err := FindOneMongo(bson.M{"username" : username}, "logins")
+	if err != nil{
+		//user doesnt exist
+		c.IndentedJSON(http.StatusNotFound, "user not found")
 		return
 	}
 
-	stored_hash := result["password"]
+	stored_hash := mongoResult.LoginData.Password
 
 	//generating hash for current password
 	hasher := sha1.New()
@@ -86,20 +86,34 @@ func HandleLogin(c *gin.Context){
 		return
 	}
 
+	//delete all existing sessions to prevent user from submitting on more than 1 device
+	DeleteManyMongo(Document{
+		Type: "sessions",
+		SessionData: Sessions{
+			Username: username,
+		},
+	})
+
 	//generate session token
 	hasher = sha1.New()
 	hasher.Write([]byte(current_time))
 	auth_token := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
-	err := UpdateSession(auth_token, username)
+	doc := Document{
+		Type: "sessions",
+		SessionData: Sessions{
+			Username: username,
+			AuthToken: auth_token,
+			Ts: time.Now().Format(TIME_FORMAT),
+		},
+	}
+	err = InsertMongo(doc)
 	if err != nil{
-		c.IndentedJSON(http.StatusInternalServerError,"")
+		c.IndentedJSON(http.StatusInternalServerError,"could not create new session")
 		return
 	}
-	
 	c.SetCookie("AuthToken", auth_token, 0, "/", "localhost",true,true)
 	c.SetCookie("Username", username, 0, "/", "localhost",true,true)
-
 	c.IndentedJSON(http.StatusOK, "")
 }
 
@@ -114,13 +128,8 @@ func CheckLogin(c *gin.Context) bool{
 		return false
 	}
 
-	result := FindOne(bson.M{"username" : username},"login")
-	if result == nil{
-		//user is not logged in
-		return false
-	}
-
-	return result["auth_token"] == auth_token
+	_,err = FindOneMongo(bson.M{"username" : username,"auth_token":auth_token},"sessions")
+	return err == nil
 }
 
 func HandleCheckLogin(c *gin.Context){
@@ -135,28 +144,27 @@ func HandleCheckLogin(c *gin.Context){
 func HandleLogout(c *gin.Context){
 	auth_token, err := c.Cookie("AuthToken")
 	if err != nil{
-		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
+		c.IndentedJSON(http.StatusInternalServerError,"auth token missing")
 		return
 	}
 	username, err := c.Cookie("Username")
 	if err != nil{
-		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
+		c.IndentedJSON(http.StatusInternalServerError,"username missing")
 		return
 	}
 
-	result := FindOne(bson.M{"username": username}, "login")
-	if result["auth_token"] != auth_token{
-		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
+	_,err = FindOneMongo(bson.M{"username": username, "auth_token": auth_token}, "sessions")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError,"not logged in")
 		return
 	}
 
-	//replace with fake auth_token
-	current_time := time.Now().String()
-	hasher := sha1.New()
-	hasher.Write([]byte(current_time))
-	auth_token = base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-
-	err = UpdateSession(auth_token,username)
+	err = DeleteManyMongo(Document{
+		Type: "sessions",
+		SessionData: Sessions{
+			Username: username,
+		},
+	})
 	if err != nil{
 		c.IndentedJSON(http.StatusInternalServerError,"could not log you out")
 		return
