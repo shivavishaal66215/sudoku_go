@@ -126,7 +126,7 @@ export default class Game extends Component {
 		const num = parseInt(e.target.id.split("_")[1]);
 
 		if (
-			this.state.blueprint[this.state.active_row][this.state.active_col] === 0
+			this.state.blueprint[this.state.active_row][this.state.active_col] !== 0
 		) {
 			alert("Cannot change that cell");
 		} else {
