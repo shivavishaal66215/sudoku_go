@@ -13,6 +13,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+func CheckSudokuMatch(a [9][9]int, b [9][9]int) bool{
+	for i:=0;i<9;i++{
+		for j:=0;j<9;j++{
+			if a[i][j] != b[i][j]{
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 func GetLatestGame(result []Document)(int,error){
 	if len(result) == 0{
 		return -1, errors.New("size is 0")
@@ -165,4 +177,69 @@ func HandleSaveSudoku(c *gin.Context){
 	}
 
 	c.IndentedJSON(http.StatusOK, "Saved")
+}
+
+func HandleSubmitSudoku(c *gin.Context){
+	login_status := CheckLogin(c)
+	if !login_status{
+		c.IndentedJSON(http.StatusForbidden, "not logged in")
+		return
+	}
+
+	username,err := c.Cookie("Username")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not parse cookie")
+		return
+	}
+
+	c.Request.ParseForm()
+	result,err := FindManyMongo(bson.M{"username": username},"solves")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not fetch history")
+		return
+	}
+
+	var passedSudoku [9][9]int
+	err = json.Unmarshal([]byte(c.Request.Form["sudoku"][0]),&passedSudoku)
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not parse payload")
+		return
+	}
+
+	latest_index,err := GetLatestGame(result)
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "trouble fetching history")
+		return
+	}
+
+	latest := result[latest_index]
+
+	//check if submitted sudoku and the correct sudoku are the same
+	match := CheckSudokuMatch(passedSudoku,latest.SolvesData.Sudoku)
+	if match{
+		//passed sudoku matches with the correct sudoku
+		//set this sudoku as completed
+		err = UpdateOneMongo(bson.M{"username": username, "ts": latest.SolvesData.Ts}, "solves", Document{
+			Type: "solves",
+			SolvesData: Solves{
+				Current: passedSudoku,
+				Sudoku: latest.SolvesData.Sudoku,
+				Ts: latest.SolvesData.Ts,
+				Username: latest.SolvesData.Username,
+				Completed: true,
+				Difficulty: latest.SolvesData.Difficulty,
+			},
+		})
+
+		if err != nil{
+			c.IndentedJSON(http.StatusInternalServerError, "could not make changes to database")
+			return
+		}
+		
+		c.IndentedJSON(http.StatusOK,"successfully submitted")
+
+	}else{
+		c.IndentedJSON(http.StatusForbidden,"sudokus don't match")
+		return
+	}
 }

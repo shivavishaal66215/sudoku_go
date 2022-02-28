@@ -23,6 +23,7 @@ export default class Game extends Component {
 		this.handleCellClick = this.handleCellClick.bind(this);
 		this.handleControlClick = this.handleControlClick.bind(this);
 		this.handleSave = this.handleSave.bind(this);
+		this.handleSubmit = this.handleSubmit.bind(this);
 	}
 
 	async handleLogout() {
@@ -109,6 +110,10 @@ export default class Game extends Component {
 		const row = parseInt(click[1]);
 		const col = parseInt(click[2]);
 
+		if (this.state.blueprint[row][col] !== 0) {
+			return;
+		}
+
 		if (this.state.active_col === col && this.state.active_row === row) {
 			//deactivate current cell
 			this.setState(() => {
@@ -125,19 +130,46 @@ export default class Game extends Component {
 	handleControlClick(e) {
 		const num = parseInt(e.target.id.split("_")[1]);
 
-		if (
-			this.state.blueprint[this.state.active_row][this.state.active_col] !== 0
-		) {
-			alert("Cannot change that cell");
-		} else {
-			const arr = this.state.sudoku;
-			arr[this.state.active_row][this.state.active_col] = num;
+		const arr = this.state.sudoku;
+		arr[this.state.active_row][this.state.active_col] = num;
+		this.setState(() => {
+			return {
+				...this.state,
+				sudoku: arr,
+			};
+		});
+	}
+
+	async handleSubmit() {
+		try {
+			await axios({
+				method: "post",
+				url: "submit-sudoku",
+				data: querystring.stringify({
+					sudoku: JSON.stringify(this.state.sudoku),
+				}),
+				withCredentials: true,
+			});
+
+			//reset the game
 			this.setState(() => {
 				return {
 					...this.state,
-					sudoku: arr,
+					sudoku: [],
+					mustGenSudoku: true,
+					isLoading: false,
+					active_row: null,
+					active_col: null,
+					blueprint: [],
 				};
 			});
+		} catch (e) {
+			const status = e.response.status;
+			if (status === 403) {
+				alert("sudoku is not valid");
+			} else {
+				alert("unable to submit sudoku");
+			}
 		}
 	}
 
@@ -232,7 +264,7 @@ export default class Game extends Component {
 									})}
 								</div>
 								<button onClick={this.handleSave}>Save</button>
-								<button>Submit</button>
+								<button onClick={this.handleSubmit}>Submit</button>
 							</div>
 						)}
 					</div>
