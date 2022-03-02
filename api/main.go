@@ -22,6 +22,7 @@ func main(){
 	r.POST("/check-unsolved",HandleCheckUnsolved)
 	r.POST("/save-sudoku",HandleSaveSudoku)
 	r.POST("/submit-sudoku",HandleSubmitSudoku)
+	r.POST("/get-stats",HandleGetStats)
 
 	r.Run("localhost:8000")
 

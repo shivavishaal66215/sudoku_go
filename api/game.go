@@ -243,3 +243,45 @@ func HandleSubmitSudoku(c *gin.Context){
 		return
 	}
 }
+
+func HandleGetStats(c *gin.Context){
+	login_status := CheckLogin(c)
+	if !login_status{
+		c.IndentedJSON(http.StatusForbidden, "not logged in")
+		return
+	}
+
+	username,err := c.Cookie("Username")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not parse cookie")
+		return
+	}
+
+	result,err := FindManyMongo(bson.M{"username": username},"solves")
+	if err != nil{
+		c.IndentedJSON(http.StatusInternalServerError, "could not fetch history")
+		return
+	}
+
+	easy := 0
+	medium := 0
+	hard := 0
+
+	for i:=0;i<len(result);i++{
+		if result[i].SolvesData.Completed{
+			if result[i].SolvesData.Difficulty == 0{
+				easy += 1
+			}else if result[i].SolvesData.Difficulty == 1{
+				medium += 1
+			}else{
+				hard += 1
+			}
+		}
+	}
+
+	c.IndentedJSON(http.StatusOK, map[string]int{
+		"easy": easy,
+		"medium": medium,
+		"hard": hard,
+	})
+}

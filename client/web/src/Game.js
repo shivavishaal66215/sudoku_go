@@ -208,6 +208,22 @@ export default class Game extends Component {
 		}
 	}
 
+	async handleStatsClick() {
+		try {
+			const res = await axios({
+				method: "post",
+				url: "/get-stats",
+				withCredentials: true,
+			});
+			const data = res.data;
+			alert(
+				`easy:${data["easy"]}\nmedium:${data["medium"]}\nhard:${data["hard"]}`
+			);
+		} catch (e) {
+			alert("could not get stats");
+		}
+	}
+
 	render() {
 		let row = -1;
 		let col = -1;
@@ -234,6 +250,9 @@ export default class Game extends Component {
 							</select>
 							<div onClick={this.generateNewSudoku} className="button-regular">
 								Generate
+							</div>
+							<div onClick={this.handleStatsClick} className="button-regular">
+								Stats
 							</div>
 						</div>
 						{this.state.mustGenSudoku ? null : (
