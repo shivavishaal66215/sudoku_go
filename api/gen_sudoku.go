@@ -133,9 +133,9 @@ func fillRest(arr[9][9]int, row int, col int, result *[9][9]int){
 func unSolve(arr[9][9]int, difficulty int) [9][9]int{
 	result := [9][9]int{}
 	difficulty_map := map[int]float64{
-		0 : 0.8,
-		1 : 0.6,
-		2 : 0.4,
+		0 : 0.6,
+		1 : 0.4,
+		2 : 0.2,
 	}
 	cur := difficulty_map[difficulty]
 	for i:=0;i<9;i++{
