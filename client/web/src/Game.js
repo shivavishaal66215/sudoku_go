@@ -55,12 +55,20 @@ export default class Game extends Component {
 			});
 
 			this.setState(() => {
+				let blueprint = [];
+				for (let i = 0; i < 9; i++) {
+					let temp = [];
+					for (let j = 0; j < 9; j++) {
+						temp.push(result.data[i][j]);
+					}
+					blueprint.push(temp);
+				}
 				return {
 					...this.state,
 					sudoku: result.data,
 					isLoading: false,
 					mustGenSudoku: false,
-					blueprint: result.data,
+					blueprint: blueprint,
 				};
 			});
 		} catch (e) {
@@ -80,12 +88,21 @@ export default class Game extends Component {
 				withCredentials: true,
 			});
 			this.setState(() => {
+				let blueprint = [];
+				for (let i = 0; i < 9; i++) {
+					let temp = [];
+					for (let j = 0; j < 9; j++) {
+						temp.push(res.data[i][j]);
+					}
+					blueprint.push(temp);
+				}
+
 				return {
 					...this.state,
 					mustGenSudoku: false,
 					isLoading: false,
 					sudoku: res.data,
-					blueprint: res.data,
+					blueprint: blueprint,
 				};
 			});
 		} catch (e) {
@@ -110,15 +127,15 @@ export default class Game extends Component {
 		const row = parseInt(click[1]);
 		const col = parseInt(click[2]);
 
-		if (this.state.blueprint[row][col] !== 0) {
-			return;
-		}
-
 		if (this.state.active_col === col && this.state.active_row === row) {
 			//deactivate current cell
 			this.setState(() => {
 				return { ...this.state, active_col: null, active_row: null };
 			});
+			return;
+		}
+
+		if (this.state.blueprint[row][col] !== 0) {
 			return;
 		}
 
@@ -195,8 +212,10 @@ export default class Game extends Component {
 		let row = -1;
 		let col = -1;
 		return (
-			<div>
-				<button onClick={this.handleLogout}>Logout</button>
+			<div className="Game">
+				<div onClick={this.handleLogout} className="button-regular">
+					Logout
+				</div>
 				{this.state.isLoading ? (
 					<div>
 						<img
@@ -207,64 +226,79 @@ export default class Game extends Component {
 					</div>
 				) : (
 					<div>
-						<div>
+						<div className="Game-generate">
 							<select ref={this.selectRef} defaultValue="1">
 								<option value="0">Easy</option>
 								<option value="1">Medium</option>
 								<option value="2">Hard</option>
 							</select>
-							<button onClick={this.generateNewSudoku}>Generate</button>
+							<div onClick={this.generateNewSudoku} className="button-regular">
+								Generate
+							</div>
 						</div>
 						{this.state.mustGenSudoku ? null : (
 							<div>
-								<div>
+								<div className="Game-Control">
 									{this.state.active_col !== null &&
 									this.state.active_row !== null ? (
 										[1, 2, 3, 4, 5, 6, 7, 8, 9].map((ele) => {
 											return (
-												<span
+												<div
 													key={`control_${ele}`}
 													id={`control_${ele}`}
 													onClick={this.handleControlClick}
+													className="Game-Control-Cell"
 												>
 													{ele}
-												</span>
+												</div>
 											);
 										})
 									) : (
-										<div>Select a cell</div>
+										<div className="Game-Hint">Select a cell</div>
 									)}
 								</div>
-								<div>
+								<div className="Game-Main-Game">
 									{this.state.sudoku.map((ele) => {
 										row += 1;
 										col = -1;
 										return (
-											<div key={`row_${row}`}>
+											<div key={`row_${row}`} className="Game-Main-Game-Row">
 												{ele.map((item) => {
 													col += 1;
 													return (
-														<span
+														<div
 															key={`item_${row}_${col}`}
 															id={`item_${row}_${col}`}
 															onClick={this.handleCellClick}
 															className={
 																this.state.active_col === col &&
 																this.state.active_row === row
-																	? "Game-Cell-Selected"
-																	: null
+																	? "Game-Cell-Selected Game-Main-Game-Cell"
+																	: "Game-Main-Game-Cell"
 															}
 														>
-															{item}
-														</span>
+															{item === 0 ? "" : item}
+														</div>
 													);
 												})}
 											</div>
 										);
 									})}
 								</div>
-								<button onClick={this.handleSave}>Save</button>
-								<button onClick={this.handleSubmit}>Submit</button>
+								<div className="Game-Submit-Save">
+									<div
+										onClick={this.handleSave}
+										className="button-regular button-submit"
+									>
+										Save
+									</div>
+									<div
+										onClick={this.handleSubmit}
+										className="button-regular button-submit"
+									>
+										Submit
+									</div>
+								</div>
 							</div>
 						)}
 					</div>

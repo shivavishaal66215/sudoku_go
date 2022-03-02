@@ -1,3 +1,95 @@
+.Game {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.Game > .button-regular {
+	width: 150px;
+}
+
+.Game-generate {
+	display: flex;
+	width: 100%;
+	justify-content: space-evenly;
+	align-items: center;
+	margin: 20px 0px;
+}
+
 .Game-Cell-Selected {
 	background-color: red;
+}
+
+.Game-Hint {
+	font-style: italic;
+	height: 30px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.Game-Control {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: row;
+}
+
+.Game-Control-Cell {
+	width: 30px;
+	height: 30px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.Game-Main-Game {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+.Game-Main-Game-Row {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: row;
+}
+
+.Game-Main-Game-Row:nth-of-type(3) {
+	border-bottom: 5px solid black;
+}
+.Game-Main-Game-Row:nth-of-type(6) {
+	border-bottom: 5px solid black;
+}
+
+.Game-Main-Game-Cell {
+	width: 30px;
+	height: 30px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border: 1px solid black;
+	cursor: pointer;
+}
+
+.Game-Main-Game-Cell:nth-of-type(3) {
+	border-right: 5px solid black;
+}
+.Game-Main-Game-Cell:nth-of-type(6) {
+	border-right: 5px solid black;
+}
+
+.Game-Submit-Save {
+	margin-top: 20px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.Game-Submit-Save > .button-regular {
+	margin-right: 10px;
 }

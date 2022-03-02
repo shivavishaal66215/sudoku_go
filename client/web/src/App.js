@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import Game from "./Game";
 import axios from "axios";
 import LoginRegister from "./LoginRegister";
+import "./styles/App.css";
+
 export default class App extends Component {
 	constructor(props) {
 		super(props);
@@ -42,9 +44,9 @@ export default class App extends Component {
 
 	render() {
 		return (
-			<div>
+			<div className="App">
 				{this.state.isLoading ? (
-					<div>
+					<div className="App-Body">
 						<img
 							src="http://i.stack.imgur.com/SBv4T.gif"
 							alt="this slowpoke moves"
@@ -52,13 +54,11 @@ export default class App extends Component {
 						/>
 					</div>
 				) : (
-					<div>
+					<div className="App-Body">
 						{!this.state.isLoggedin ? (
 							<LoginRegister setLoggedInStatus={this.setLoggedInStatus} />
 						) : (
-							<div>
-								<Game setLoggedInStatus={this.setLoggedInStatus} />
-							</div>
+							<Game setLoggedInStatus={this.setLoggedInStatus} />
 						)}
 					</div>
 				)}

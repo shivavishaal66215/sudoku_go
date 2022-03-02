@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import axios from "axios";
 import querystring from "querystring";
+import "./styles/LoginRegister.css";
 
 export default class LoginRegister extends Component {
 	constructor(props) {
@@ -36,7 +37,13 @@ export default class LoginRegister extends Component {
 			});
 			this.props.setLoggedInStatus(true);
 		} catch (e) {
-			alert("username or password incorrect");
+			const status = e.response.status;
+
+			if (status === 403) {
+				alert("invalid username or password");
+			} else {
+				alert("something went wrong");
+			}
 			this.props.setLoggedInStatus(false);
 		}
 	}
@@ -71,7 +78,7 @@ export default class LoginRegister extends Component {
 
 	handleSubmit() {
 		let current = this.state.isLogin;
-		if (current == true) {
+		if (current === true) {
 			this.handleLogin();
 		} else {
 			this.handleRegister();
@@ -91,42 +98,57 @@ export default class LoginRegister extends Component {
 
 	render() {
 		return (
-			<div>
-				<div>
-					<button onClick={this.setIsLogin}>Login</button>
-					<button onClick={this.unsetIsLogin}>Register</button>
+			<div className="LoginRegister">
+				<div className="LoginRegister-Type-Select">
+					<div onClick={this.setIsLogin} className="button-regular">
+						Login
+					</div>
+					<div onClick={this.unsetIsLogin} className="button-regular">
+						Register
+					</div>
 				</div>
-				<div>
-					<label>Username</label>
-					<input
-						type="text"
-						name="username"
-						id="username"
-						ref={this.usernameRef}
-					/>
-				</div>
-				<div>
-					<label>Password</label>
-					<input
-						type="password"
-						name="password"
-						id="password"
-						ref={this.passwordRef}
-					/>
-				</div>
-				{/* display confirm password field only for register */}
-				{!this.state.isLogin ? (
+				<h1>{this.state.isLogin ? "Login" : "Register"}</h1>
+				<div className="LoginRegister-Body">
 					<div>
-						<label>Confirm Password</label>
+						<label className="label-regular">Username</label>
+						<br />
 						<input
-							type="password"
-							name="confirm-password"
-							id="confirm-password"
-							ref={this.confirmRef}
+							type="text"
+							name="username"
+							id="username"
+							ref={this.usernameRef}
 						/>
 					</div>
-				) : null}
-				<button onClick={this.handleSubmit}>Submit</button>
+					<div>
+						<label className="label-regular">Password</label>
+						<br />
+						<input
+							type="password"
+							name="password"
+							id="password"
+							ref={this.passwordRef}
+						/>
+					</div>
+					{/* display confirm password field only for register */}
+					{!this.state.isLogin ? (
+						<div>
+							<label className="label-regular">Confirm Password</label>
+							<br />
+							<input
+								type="password"
+								name="confirm-password"
+								id="confirm-password"
+								ref={this.confirmRef}
+							/>
+						</div>
+					) : null}
+					<div
+						onClick={this.handleSubmit}
+						className="button-regular button-submit"
+					>
+						Submit
+					</div>
+				</div>
 			</div>
 		);
 	}
