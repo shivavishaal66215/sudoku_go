@@ -8,7 +8,7 @@ import (
 
 
 func main(){
-	// gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
 	r.GET("/test",func(c *gin.Context) {
