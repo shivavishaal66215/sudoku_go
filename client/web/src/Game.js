@@ -241,7 +241,7 @@ export default class Game extends Component {
 								<div className="Game-Control">
 									{this.state.active_col !== null &&
 									this.state.active_row !== null ? (
-										[1, 2, 3, 4, 5, 6, 7, 8, 9].map((ele) => {
+										[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((ele) => {
 											return (
 												<div
 													key={`control_${ele}`}
@@ -249,7 +249,7 @@ export default class Game extends Component {
 													onClick={this.handleControlClick}
 													className="Game-Control-Cell"
 												>
-													{ele}
+													{ele !== 0 ? ele : "X"}
 												</div>
 											);
 										})

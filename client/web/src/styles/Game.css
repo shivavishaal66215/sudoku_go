@@ -20,7 +20,7 @@
 }
 
 .Game-Cell-Selected {
-	background-color: red;
+	background-color: grey;
 }
 
 .Game-Hint {
@@ -29,6 +29,7 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	margin-bottom: 20px;
 }
 
 .Game-Control {
@@ -44,6 +45,8 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	border: 1px solid black;
+	margin-bottom: 20px;
 }
 
 .Game-Main-Game {
